@@ -1,0 +1,95 @@
+---
+title: "APIscraping_part2"
+author: "Asaf Eliyahu & Einat Edelstien"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(twitteR)
+library(tm)
+library(wordcloud)
+library(stringr)
+library(wordcloud)
+library(plyr)
+library(ggplot2)
+source("sentiment.R")
+consumerKey <- 'd9Ie2YnVqLCJQZInCe59iEd7G'
+consumerSecret <- 'j7Hjsz4Lza7D8MyrlkpPiSAA9Vtxu0fp0bCBRZa186Hw0jyIBa'
+accessToken <- '718353560489095168-YtKnMnbcpPnvWH6du6SDhdtS9ecbHg9'
+accessTokenSecret <- 'REOHKpbejvg6si5jXNJDffEbCLrRc9i9oaOv3X5FpWRoL'
+twitteR::setup_twitter_oauth(consumerKey,consumerSecret,accessToken,accessTokenSecret)
+```
+
+## NBA analysis markdown
+
+In part2 we decided to use twitteR which is a tool that aloud us to search for specific twitts with specific words inside of them.
+we decided to look for twitts which include the word #NBA in them.
+
+####first we display a "wordCloud" of the most common words
+
+```{r twitteR, echo=FALSE}
+
+# get tweets with relevant data
+NBAtweets <- searchTwitter('#NBA', n = 500, lang = 'en', resultType = "recent")
+
+NBAtweets_text <- sapply(NBAtweets, function(x) x$getText())
+# Now we can use tm package to make a corpus and then we can view it as a wordcloud
+NBAtweets_corpus <- Corpus(VectorSource(NBAtweets_text))
+
+#cleaning the data a bit
+NBAtweets_corpus_clean <- tm_map(NBAtweets_corpus, removePunctuation)
+NBAtweets_corpus_clean <- tm_map(NBAtweets_corpus_clean, removeWords, stopwords("english"))
+NBAtweets_corpus_clean <- tm_map(NBAtweets_corpus_clean, removeNumbers)
+NBAtweets_corpus_clean <- tm_map(NBAtweets_corpus_clean, stripWhitespace)
+
+#making a wordcloud
+wordcloud(NBAtweets_corpus_clean, random.order = F, max.words = 50, scale = c(3, 0.9), colors = rainbow(50, alpha = 0.8))
+
+```
+
+--- 
+
+## making an analysis of negative Vs. positive words on the tweets:
+now we used two text files, one containing positive words and the other contatining negative words.
+we used those words to create an analysis on the twitts text and figured out the destribution of them on the twitts.
+
+#####the numbers are between -3 to 3 while -3 is the most negative, 0 is neutral and 3 is the most positive
+
+```{r POSNEG, echo=FALSE}
+
+NBAtweets_text2 <- laply(NBAtweets, function(x) x$getText())
+
+pos = scan('positive-words.txt', what = 'character', comment.char = ';')
+neg = scan('negative-words.txt', what = 'character', comment.char = ';')
+
+analysis = score.sentiment(NBAtweets_text2, pos.words = pos, neg.words = neg)
+
+#table(analysis$score)
+# an histogram of the destribution of negative/positive words from 500 NBA tweets
+hist(analysis$score,xlab=" ", main="histogram of positive and negative words in NBA twitts ",
+     border="black",col="skyblue")
+# we can learn that there are more positive than negative tweets in this subject!
+
+```
+
+###from this graph we can learn that most of the twitts about NBA are neutrals. but we have more positive than negative content in this sport.
+
+---
+
+###now we'll see a graph which will tell us how many twitts from our 500 twitts are retwitted!
+
+```{r, echo=FALSE }
+# make a dataFrame from the tweets we got 
+web_scraping_tweets <- twListToDF(NBAtweets)
+barplot(table(web_scraping_tweets$isRetweet),col="green",main="retwitted twitts Vs. none")
+```
+
+### most of the times we will see more FALSE
+### and its logical because usually only famous people twitts are retwitted.
+
+
+
+
+
+#### the end
